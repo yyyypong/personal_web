@@ -157,3 +157,28 @@ for (let i = 0; i < navigationLinks.length; i++) {
 
   });
 }
+
+
+// Handle form submission
+form.addEventListener('submit', function(event) {
+  event.preventDefault(); // Prevent default form submission
+
+  // Get form data
+  const formData = {
+    fullname: form.querySelector('input[name="fullname"]').value,
+    email: form.querySelector('input[name="email"]').value,
+    message: form.querySelector('textarea[name="message"]').value
+  };
+
+  // Send email using EmailJS (replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with your actual IDs)
+  emailjs.send('service_uziyl55', 'template_j50e5vo', formData)
+    .then(function(response) {
+      console.log('SUCCESS!', response.status, response.text);
+      alert('Message sent successfully!'); // Show success message
+      form.reset(); // Reset the form
+      formBtn.setAttribute('disabled', ''); // Disable button again
+    }, function(error) {
+      console.log('FAILED...', error);
+      alert('Failed to send message. Please try again.'); // Show error message
+    });
+});

@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场中性策略量化私募评分系统</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .module {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .module h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .result-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .result-item {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .result-value {
+            font-weight: 600;
+            color: #28a745;
+        }
+        
+        .score-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.5s ease;
+        }
+        
+        .wind-api-note {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+            font-weight: 600;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .grade-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .grade-A { background-color: #d4edda; color: #155724; }
+        .grade-B { background-color: #cce5ff; color: #004085; }
+        .grade-C { background-color: #fff3cd; color: #856404; }
+        .grade-D { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>市场中性策略量化私募评分系统</h1>
+        
+        <div class="wind-api-note">
+            <strong>数据获取说明：</strong>部分数据可通过Wind API获取（需配置API密钥），无法获取的数据请手动输入。
+            <br>Wind API示例：w.wsd("基金代码", "nav_adj", "2024-01-01", "2024-12-01", "")
+        </div>
+
+        <!-- 基金基本信息 -->
+        <div class="module">
+            <h2>基金基本信息</h2>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>基金名称</label>
+                    <input type="text" id="fundName" placeholder="输入基金名称">
+                </div>
+                <div class="input-group">
+                    <label>基金代码</label>
+                    <input type="text" id="fundCode" placeholder="输入基金代码（用于Wind数据获取）">
+                </div>
+                <div class="input-group">
+                    <label>成立日期</label>
+                    <input type="date" id="establishDate">
+                </div>
+                <div class="input-group">
+                    <label>管理规模（亿元）</label>
+                    <input type="number" id="aum" step="0.1" placeholder="输入管理规模">
+                </div>
+            </div>
+        </div>
+
+        <!-- 模块选项卡 -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('manager')">基金经理评估</div>
+            <div class="tab" onclick="switchTab('strategy')">策略有效性</div>
+            <div class="tab" onclick="switchTab('risk')">风险管理</div>
+            <div class="tab" onclick="switchTab('return')">收益能力</div>
+            <div class="tab" onclick="switchTab('operation')">运营管理</div>
+            <div class="tab" onclick="switchTab('market')">市场适应性</div>
+            <div class="tab" onclick="switchTab('stability')">持续稳定性</div>
+        </div>
+
+        <!-- 模块1：基金经理能力评估 -->
+        <div id="manager" class="tab-content active">
+            <div class="module">
+                <h2>基金经理能力评估模块</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>基金经理姓名</label>
+                        <input type="text" id="managerName">
+                    </div>
+                    <div class="input-group">
+                        <label>学历</label>
+                        <select id="education">
+                            <option value="phd">博士</option>
+                            <option value="master">硕士</option>
+                            <option value="bachelor">本科</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>专业背景</label>
+                        <select id="major">
+                            <option value="quant">数学/物理/计算机</option>
+                            <option value="finance">金融/经济</option>
+                            <option value="engineering">工程</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>从业年限</label>
+                        <input type="number" id="experience" min="0" step="1">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>历史年化收益率（%）</label>
+                        <input type="number" id="historicalReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>历史最大回撤（%）</label>
+                        <input type="number" id="historicalDrawdown" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>历史夏普比率</label>
+                        <input type="number" id="historicalSharpe" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>团队规模（人）</label>
+                        <input type="number" id="teamSize" min="1">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateManager()">评估基金经理能力</button>
+                <div id="managerResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块2：策略有效性评估 -->
+        <div id="strategy" class="tab-content">
+            <div class="module">
+                <h2>策略有效性评估模块（市场中性特色）</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Beta值（对沪深300）</label>
+                        <input type="number" id="beta" step="0.001" placeholder="越接近0越好">
+                    </div>
+                    <div class="input-group">
+                        <label>Alpha（年化%）</label>
+                        <input type="number" id="alpha" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>R²（模型解释度）</label>
+                        <input type="number" id="rSquared" step="0.001" min="0" max="1">
+                    </div>
+                    <div class="input-group">
+                        <label>信息比率</label>
+                        <input type="number" id="infoRatio" step="0.01">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>多头持仓数量</label>
+                        <input type="number" id="longPositions" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>空头持仓数量</label>
+                        <input type="number" id="shortPositions" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>净敞口（%）</label>
+                        <input type="number" id="netExposure" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>月均换手率（%）</label>
+                        <input type="number" id="turnover" step="0.1">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateStrategy()">评估策略有效性</button>
+                <div id="strategyResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块3：风险管理能力评估 -->
+        <div id="risk" class="tab-content">
+            <div class="module">
+                <h2>风险管理能力评估模块</h2>
+                <h3 style="font-size: 16px; margin: 15px 0;">极端市场事件表现</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>2024年2月小票崩盘期间回撤（%）</label>
+                        <input type="number" id="feb2024Drawdown" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>2024年7-8月低迷期收益（%）</label>
+                        <input type="number" id="jul2024Return" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>2024年9.24暴涨日收益（%）</label>
+                        <input type="number" id="sep24Return" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>最大回撤恢复天数</label>
+                        <input type="number" id="recoveryDays" min="0">
+                    </div>
+                </div>
+                <h3 style="font-size: 16px; margin: 15px 0;">风险指标</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>年化波动率（%）</label>
+                        <input type="number" id="volatility" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>下行波动率（%）</label>
+                        <input type="number" id="downVolatility" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>95% VaR（%）</label>
+                        <input type="number" id="var95" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>最大单日亏损（%）</label>
+                        <input type="number" id="maxDailyLoss" step="0.01">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateRisk()">评估风险管理能力</button>
+                <div id="riskResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块4：收益能力评估 -->
+        <div id="return" class="tab-content">
+            <div class="module">
+                <h2>收益能力评估模块</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>近一年收益率（%）</label>
+                        <input type="number" id="return1Y" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>近三年年化收益率（%）</label>
+                        <input type="number" id="return3Y" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>成立以来年化收益率（%）</label>
+                        <input type="number" id="returnSinceInception" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>月度胜率（%）</label>
+                        <input type="number" id="monthlyWinRate" step="0.01" min="0" max="100">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>牛市期间年化收益（%）</label>
+                        <input type="number" id="bullReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>熊市期间年化收益（%）</label>
+                        <input type="number" id="bearReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>震荡市期间年化收益（%）</label>
+                        <input type="number" id="sidewaysReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>卡玛比率</label>
+                        <input type="number" id="calmarRatio" step="0.01">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateReturn()">评估收益能力</button>
+                <div id="returnResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块5：运营管理评估 -->
+        <div id="operation" class="tab-content">
+            <div class="module">
+                <h2>运营管理评估模块</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>净值披露频率</label>
+                        <select id="navFrequency">
+                            <option value="daily">每日</option>
+                            <option value="weekly">每周</option>
+                            <option value="monthly">每月</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>定期报告完整度（1-10分）</label>
+                        <input type="number" id="reportQuality" min="1" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>客户服务响应时间（小时）</label>
+                        <input type="number" id="responseTime" step="0.1">
+                    </div>
+                    <div class="input-group">
+                        <label>合规违规次数</label>
+                        <input type="number" id="violations" min="0">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>IT系统投入（万元/年）</label>
+                        <input type="number" id="itInvestment" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label>运营团队人数</label>
+                        <input type="number" id="operationTeamSize" min="1">
+                    </div>
+                    <div class="input-group">
+                        <label>系统故障率（%）</label>
+                        <input type="number" id="systemFailureRate" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>投资者满意度（1-10分）</label>
+                        <input type="number" id="satisfaction" min="1" max="10">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateOperation()">评估运营管理</button>
+                <div id="operationResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块6：市场适应性评估 -->
+        <div id="market" class="tab-content">
+            <div class="module">
+                <h2>市场适应性评估模块</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>大盘股行情收益（%）</label>
+                        <input type="number" id="largeCapReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>小盘股行情收益（%）</label>
+                        <input type="number" id="smallCapReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>成长股行情收益（%）</label>
+                        <input type="number" id="growthReturn" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>价值股行情收益（%）</label>
+                        <input type="number" id="valueReturn" step="0.01">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>策略调整频率（次/年）</label>
+                        <input type="number" id="strategyAdjustFreq" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>新策略成功率（%）</label>
+                        <input type="number" id="newStrategySuccess" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>因子轮动能力（1-10分）</label>
+                        <input type="number" id="factorRotation" min="1" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>市场判断准确率（%）</label>
+                        <input type="number" id="marketPrediction" step="0.01" min="0" max="100">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateMarket()">评估市场适应性</button>
+                <div id="marketResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 模块7：持续性与稳定性评估 -->
+        <div id="stability" class="tab-content">
+            <div class="module">
+                <h2>持续性与稳定性评估模块</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>连续正收益月数</label>
+                        <input type="number" id="consecutivePositive" min="0">
+                    </div>
+                    <div class="input-group">
+                        <label>收益标准差（%）</label>
+                        <input type="number" id="returnStd" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>规模增长率（%/年）</label>
+                        <input type="number" id="aumGrowth" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label>月度申赎比</label>
+                        <input type="number" id="flowRatio" step="0.01">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>核心人员流失率（%）</label>
+                        <input type="number" id="turnoverRate" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>策略容量利用率（%）</label>
+                        <input type="number" id="capacityUsage" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>业绩持续性得分（1-10）</label>
+                        <input type="number" id="performancePersistence" min="1" max="10">
+                    </div>
+                    <div class="input-group">
+                        <label>策略迭代次数（次/年）</label>
+                        <input type="number" id="strategyIteration" min="0">
+                    </div>
+                </div>
+                <button class="btn" onclick="evaluateStability()">评估持续稳定性</button>
+                <div id="stabilityResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+
+        <!-- 综合结果展示 -->
+        <div class="module" id="summaryModule" style="display:none;">
+            <h2>综合评估结果汇总</h2>
+            <div id="summaryResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // 切换标签页
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // 通用评分函数
+        function calculateScore(value, min, max, reverse = false) {
+            if (reverse) {
+                return Math.max(0, Math.min(100, ((max - value) / (max - min)) * 100));
+            }
+            return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+        }
+
+        // 评级函数
+        function getGrade(score) {
+            if (score >= 85) return 'A';
+            if (score >= 70) return 'B';
+            if (score >= 55) return 'C';
+            return 'D';
+        }
+
+        // 模块1：基金经理能力评估
+        function evaluateManager() {
+            const education = document.getElementById('education').value;
+            const major = document.getElementById('major').value;
+            const experience = parseInt(document.getElementById('experience').value) || 0;
+            const historicalReturn = parseFloat(document.getElementById('historicalReturn').value) || 0;
+            const historicalDrawdown = Math.abs(parseFloat(document.getElementById('historicalDrawdown').value) || 0);
+            const historicalSharpe = parseFloat(document.getElementById('historicalSharpe').value) || 0;
+            const teamSize = parseInt(document.getElementById('teamSize').value) || 1;
+
+            // 计算各项得分
+            let educationScore = education === 'phd' ? 100 : education === 'master' ? 80 : 60;
+            let majorScore = major === 'quant' ? 100 : major === 'finance' ? 85 : major === 'engineering' ? 90 : 70;
+            let experienceScore = calculateScore(experience, 0, 15);
+            let returnScore = calculateScore(historicalReturn, 0, 30);
+            let drawdownScore = calculateScore(historicalDrawdown, 0, 20, true);
+            let sharpeScore = calculateScore(historicalSharpe, 0, 3);
+            let teamScore = calculateScore(teamSize, 1, 20);
+
+            // 综合得分
+            const totalScore = (educationScore * 0.1 + majorScore * 0.1 + experienceScore * 0.15 + 
+                              returnScore * 0.25 + drawdownScore * 0.2 + sharpeScore * 0.15 + teamScore * 0.05);
+
+            // 风格判断
+            let style = '';
+            if (historicalDrawdown < 10 && historicalSharpe > 1.5) {
+                style = '稳健型';
+            } else if (historicalReturn > 20 && historicalDrawdown > 15) {
+                style = '激进型';
+            } else {
+                style = '均衡型';
+            }
+
+            // 显示结果
+            const resultDiv = document.getElementById('managerResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">基金经理能力综合得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">能力等级</span>
+                    <span class="grade-badge grade-${getGrade(totalScore)}">${getGrade(totalScore)}级</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">投资风格</span>
+                    <span class="result-value">${style}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">风险偏好</span>
+                    <span class="result-value">${historicalDrawdown < 10 ? '保守' : historicalDrawdown < 15 ? '稳健' : '激进'}</span>
+                </div>
+            `;
+
+            // 保存结果
+            window.managerScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块2：策略有效性评估
+        function evaluateStrategy() {
+            const beta = Math.abs(parseFloat(document.getElementById('beta').value) || 0);
+            const alpha = parseFloat(document.getElementById('alpha').value) || 0;
+            const rSquared = parseFloat(document.getElementById('rSquared').value) || 0;
+            const infoRatio = parseFloat(document.getElementById('infoRatio').value) || 0;
+            const longPositions = parseInt(document.getElementById('longPositions').value) || 0;
+            const shortPositions = parseInt(document.getElementById('shortPositions').value) || 0);
+            const netExposure = Math.abs(parseFloat(document.getElementById('netExposure').value) || 0);
+            const turnover = parseFloat(document.getElementById('turnover').value) || 0);
+
+            // 市场中性特有评分
+            let betaNeutralScore = calculateScore(beta, 0, 0.1, true); // Beta越接近0越好
+            let alphaScore = calculateScore(alpha, 0, 20);
+            let rSquaredScore = calculateScore(rSquared, 0.7, 0.95);
+            let infoRatioScore = calculateScore(infoRatio, 0, 2);
+            let hedgeScore = shortPositions > 0 ? calculateScore(Math.abs(longPositions - shortPositions), 0, 50, true) : 0;
+            let exposureScore = calculateScore(netExposure, 0, 20, true);
+            let turnoverScore = calculateScore(turnover, 50, 200, true);
+
+            // 综合得分
+            const totalScore = (betaNeutralScore * 0.25 + alphaScore * 0.2 + rSquaredScore * 0.1 + 
+                              infoRatioScore * 0.15 + hedgeScore * 0.15 + exposureScore * 0.1 + turnoverScore * 0.05);
+
+            // Alpha稳定性评级
+            let alphaStability = alpha > 10 && infoRatio > 1 ? '高' : alpha > 5 ? '中' : '低';
+
+            const resultDiv = document.getElementById('strategyResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">策略有效性得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">市场中性程度</span>
+                    <span class="result-value">${beta < 0.05 ? '优秀' : beta < 0.1 ? '良好' : '一般'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">Alpha稳定性</span>
+                    <span class="result-value">${alphaStability}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">策略容量预警</span>
+                    <span class="result-value">${turnover > 150 ? '容量受限' : '容量充足'}</span>
+                </div>
+            `;
+
+            window.strategyScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块3：风险管理能力评估
+        function evaluateRisk() {
+            const feb2024Drawdown = Math.abs(parseFloat(document.getElementById('feb2024Drawdown').value) || 0);
+            const jul2024Return = parseFloat(document.getElementById('jul2024Return').value) || 0;
+            const sep24Return = parseFloat(document.getElementById('sep24Return').value) || 0);
+            const recoveryDays = parseInt(document.getElementById('recoveryDays').value) || 0);
+            const volatility = parseFloat(document.getElementById('volatility').value) || 0);
+            const downVolatility = parseFloat(document.getElementById('downVolatility').value) || 0);
+            const var95 = Math.abs(parseFloat(document.getElementById('var95').value) || 0);
+            const maxDailyLoss = Math.abs(parseFloat(document.getElementById('maxDailyLoss').value) || 0);
+
+            // 极端事件表现评分
+            let extremeEventScore = (calculateScore(feb2024Drawdown, 0, 10, true) + 
+                                   calculateScore(jul2024Return + 10, 0, 20) + 
+                                   calculateScore(Math.abs(sep24Return), 0, 5, true)) / 3;
+
+            // 风险指标评分
+            let volScore = calculateScore(volatility, 0, 15, true);
+            let downVolScore = calculateScore(downVolatility, 0, 10, true);
+            let varScore = calculateScore(var95, 0, 5, true);
+            let recoveryScore = calculateScore(recoveryDays, 0, 60, true);
+
+            // 综合得分
+            const totalScore = (extremeEventScore * 0.4 + volScore * 0.2 + downVolScore * 0.15 + 
+                              varScore * 0.15 + recoveryScore * 0.1);
+
+            // 抗压能力评级
+            let resilience = feb2024Drawdown < 5 && recoveryDays < 30 ? 'A' : 
+                           feb2024Drawdown < 10 && recoveryDays < 45 ? 'B' : 
+                           feb2024Drawdown < 15 ? 'C' : 'D';
+
+            const resultDiv = document.getElementById('riskResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">风险管理能力得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">抗压能力等级</span>
+                    <span class="grade-badge grade-${resilience}">${resilience}级</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">极端市场表现</span>
+                    <span class="result-value">${extremeEventScore > 70 ? '优秀' : extremeEventScore > 50 ? '良好' : '一般'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">风险调整后评级</span>
+                    <span class="result-value">${volatility < 10 ? '低风险' : volatility < 15 ? '中风险' : '高风险'}</span>
+                </div>
+            `;
+
+            window.riskScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块4：收益能力评估
+        function evaluateReturn() {
+            const return1Y = parseFloat(document.getElementById('return1Y').value) || 0;
+            const return3Y = parseFloat(document.getElementById('return3Y').value) || 0;
+            const returnSinceInception = parseFloat(document.getElementById('returnSinceInception').value) || 0;
+            const monthlyWinRate = parseFloat(document.getElementById('monthlyWinRate').value) || 0;
+            const bullReturn = parseFloat(document.getElementById('bullReturn').value) || 0;
+            const bearReturn = parseFloat(document.getElementById('bearReturn').value) || 0;
+            const sidewaysReturn = parseFloat(document.getElementById('sidewaysReturn').value) || 0;
+            const calmarRatio = parseFloat(document.getElementById('calmarRatio').value) || 0;
+
+            // 绝对收益评分
+            let absoluteScore = (calculateScore(return1Y, 0, 20) + calculateScore(return3Y, 0, 15) + 
+                               calculateScore(returnSinceInception, 0, 12)) / 3;
+
+            // 收益稳定性评分
+            let stabilityScore = calculateScore(monthlyWinRate, 50, 80);
+
+            // 市场适应性评分（市场中性策略应该在各种市场都有正收益）
+            let marketScore = (calculateScore(bearReturn, -5, 10) + calculateScore(sidewaysReturn, 0, 8) + 
+                             calculateScore(Math.abs(bullReturn - bearReturn), 0, 10, true)) / 3;
+
+            // 风险调整收益评分
+            let riskAdjustedScore = calculateScore(calmarRatio, 0, 2);
+
+            // 综合得分
+            const totalScore = (absoluteScore * 0.3 + stabilityScore * 0.25 + 
+                              marketScore * 0.25 + riskAdjustedScore * 0.2);
+
+            const resultDiv = document.getElementById('returnResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">收益能力综合得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">收益稳定性</span>
+                    <span class="result-value">${monthlyWinRate > 65 ? '高' : monthlyWinRate > 55 ? '中' : '低'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">全天候能力</span>
+                    <span class="result-value">${bearReturn > 0 && sidewaysReturn > 0 ? '优秀' : '一般'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">预期年化收益区间</span>
+                    <span class="result-value">${(return3Y * 0.8).toFixed(1)}% - ${(return3Y * 1.2).toFixed(1)}%</span>
+                </div>
+            `;
+
+            window.returnScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块5：运营管理评估
+        function evaluateOperation() {
+            const navFrequency = document.getElementById('navFrequency').value;
+            const reportQuality = parseInt(document.getElementById('reportQuality').value) || 5;
+            const responseTime = parseFloat(document.getElementById('responseTime').value) || 24;
+            const violations = parseInt(document.getElementById('violations').value) || 0;
+            const itInvestment = parseFloat(document.getElementById('itInvestment').value) || 0;
+            const operationTeamSize = parseInt(document.getElementById('operationTeamSize').value) || 1;
+            const systemFailureRate = parseFloat(document.getElementById('systemFailureRate').value) || 0;
+            const satisfaction = parseInt(document.getElementById('satisfaction').value) || 5;
+
+            // 信息披露评分
+            let disclosureScore = navFrequency === 'daily' ? 100 : navFrequency === 'weekly' ? 80 : 60;
+            disclosureScore = (disclosureScore + reportQuality * 10) / 2;
+
+            // 客户服务评分
+            let serviceScore = (calculateScore(responseTime, 0, 48, true) + satisfaction * 10) / 2;
+
+            // 合规评分
+            let complianceScore = violations === 0 ? 100 : violations === 1 ? 80 : violations === 2 ? 60 : 40;
+
+            // IT系统评分
+            let itScore = (calculateScore(itInvestment, 0, 500) + calculateScore(systemFailureRate, 0, 1, true)) / 2;
+
+            // 综合得分
+            const totalScore = (disclosureScore * 0.25 + serviceScore * 0.25 + 
+                              complianceScore * 0.3 + itScore * 0.2);
+
+            const resultDiv = document.getElementById('operationResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">运营管理得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">运营风险等级</span>
+                    <span class="grade-badge grade-${getGrade(totalScore)}">${violations > 2 ? '高' : violations > 0 ? '中' : '低'}风险</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">信息透明度</span>
+                    <span class="result-value">${disclosureScore > 80 ? '优秀' : disclosureScore > 60 ? '良好' : '一般'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">改进建议</span>
+                    <span class="result-value">${totalScore < 70 ? '加强信息披露和客户服务' : '保持现有水平'}</span>
+                </div>
+            `;
+
+            window.operationScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块6：市场适应性评估
+        function evaluateMarket() {
+            const largeCapReturn = parseFloat(document.getElementById('largeCapReturn').value) || 0;
+            const smallCapReturn = parseFloat(document.getElementById('smallCapReturn').value) || 0;
+            const growthReturn = parseFloat(document.getElementById('growthReturn').value) || 0;
+            const valueReturn = parseFloat(document.getElementById('valueReturn').value) || 0;
+            const strategyAdjustFreq = parseInt(document.getElementById('strategyAdjustFreq').value) || 0;
+            const newStrategySuccess = parseFloat(document.getElementById('newStrategySuccess').value) || 0;
+            const factorRotation = parseInt(document.getElementById('factorRotation').value) || 5;
+            const marketPrediction = parseFloat(document.getElementById('marketPrediction').value) || 0;
+
+            // 风格表现一致性评分（市场中性应该在各种风格下表现相似）
+            const returns = [largeCapReturn, smallCapReturn, growthReturn, valueReturn];
+            const avgReturn = returns.reduce((a, b) => a + b) / returns.length;
+            const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
+            let consistencyScore = calculateScore(Math.sqrt(variance), 0, 5, true);
+
+            // 策略灵活性评分
+            let flexibilityScore = (calculateScore(strategyAdjustFreq, 2, 12) + 
+                                  calculateScore(newStrategySuccess, 40, 80)) / 2;
+
+            // 市场洞察力评分
+            let insightScore = (factorRotation * 10 + calculateScore(marketPrediction, 40, 70)) / 2;
+
+            // 综合得分
+            const totalScore = (consistencyScore * 0.4 + flexibilityScore * 0.3 + insightScore * 0.3);
+
+            const resultDiv = document.getElementById('marketResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">市场适应性得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">风格一致性</span>
+                    <span class="result-value">${consistencyScore > 70 ? '优秀' : consistencyScore > 50 ? '良好' : '需改进'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">策略灵活性</span>
+                    <span class="grade-badge grade-${getGrade(flexibilityScore)}">${getGrade(flexibilityScore)}级</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">市场风格匹配度</span>
+                    <span class="result-value">${avgReturn > 5 ? '全天候型' : '特定市场型'}</span>
+                </div>
+            `;
+
+            window.marketScore = totalScore;
+            checkAllModules();
+        }
+
+        // 模块7：持续性与稳定性评估
+        function evaluateStability() {
+            const consecutivePositive = parseInt(document.getElementById('consecutivePositive').value) || 0;
+            const returnStd = parseFloat(document.getElementById('returnStd').value) || 0;
+            const aumGrowth = parseFloat(document.getElementById('aumGrowth').value) || 0;
+            const flowRatio = parseFloat(document.getElementById('flowRatio').value) || 0;
+            const turnoverRate = parseFloat(document.getElementById('turnoverRate').value) || 0;
+            const capacityUsage = parseFloat(document.getElementById('capacityUsage').value) || 0;
+            const performancePersistence = parseInt(document.getElementById('performancePersistence').value) || 5;
+            const strategyIteration = parseInt(document.getElementById('strategyIteration').value) || 0;
+
+            // 业绩持续性评分
+            let performanceScore = (calculateScore(consecutivePositive, 0, 24) + 
+                                  calculateScore(returnStd, 0, 10, true) + 
+                                  performancePersistence * 10) / 3;
+
+            // 规模稳定性评分
+            let scaleScore = (calculateScore(aumGrowth, -20, 50) + 
+                            calculateScore(Math.abs(flowRatio - 1), 0, 0.5, true) + 
+                            calculateScore(capacityUsage, 30, 80)) / 3;
+
+            // 团队稳定性评分
+            let teamScore = calculateScore(turnoverRate, 0, 20, true);
+
+            // 策略进化能力评分
+            let evolutionScore = calculateScore(strategyIteration, 1, 6);
+
+            // 综合得分
+            const totalScore = (performanceScore * 0.35 + scaleScore * 0.25 + 
+                              teamScore * 0.25 + evolutionScore * 0.15);
+
+            const resultDiv = document.getElementById('stabilityResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="result-item">
+                    <span class="result-label">持续稳定性得分</span>
+                    <span class="result-value">${totalScore.toFixed(1)}</span>
+                </div>
+                <div class="score-bar">
+                    <div class="score-fill" style="width: ${totalScore}%"></div>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">业绩持续性</span>
+                    <span class="result-value">${performanceScore > 70 ? '强' : performanceScore > 50 ? '中' : '弱'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">规模风险预警</span>
+                    <span class="result-value">${capacityUsage > 80 ? '接近容量上限' : '容量充足'}</span>
+                </div>
+                <div class="result-item">
+                    <span class="result-label">长期投资价值</span>
+                    <span class="grade-badge grade-${getGrade(totalScore)}">${getGrade(totalScore)}级</span>
+                </div>
+            `;
+
+            window.stabilityScore = totalScore;
+            checkAllModules();
+        }
+
+        // 检查所有模块是否完成
+        function checkAllModules() {
+            const scores = [
+                window.managerScore,
+                window.strategyScore,
+                window.riskScore,
+                window.returnScore,
+                window.operationScore,
+                window.marketScore,
+                window.stabilityScore
+            ];
+
+            const allCompleted = scores.every(score => score !== undefined);
+
+            if (allCompleted) {
+                showSummary(scores);
+            }
+        }
+
+        // 显示综合结果
+        function showSummary(scores) {
+            const summaryModule = document.getElementById('summaryModule');
+            const summaryResult = document.getElementById('summaryResult');
+            
+            summaryModule.style.display = 'block';
+
+            // 计算各维度得分
+            const investmentScore = (scores[0] * 0.3 + scores[1] * 0.4 + scores[3] * 0.3);
+            const riskControlScore = (scores[2] * 0.6 + scores[5] * 0.4);
+            const operationalScore = (scores[4] * 0.5 + scores[6] * 0.5);
+
+            summaryResult.innerHTML = `
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">市场中性策略基金综合评估</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                    <div class="result-box">
+                        <h4 style="color: #34495e; margin-bottom: 10px;">投资能力维度</h4>
+                        <div class="result-item">
+                            <span class="result-label">综合得分</span>
+                            <span class="result-value">${investmentScore.toFixed(1)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${investmentScore}%; background-color: #3498db;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-box">
+                        <h4 style="color: #34495e; margin-bottom: 10px;">风控能力维度</h4>
+                        <div class="result-item">
+                            <span class="result-label">综合得分</span>
+                            <span class="result-value">${riskControlScore.toFixed(1)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${riskControlScore}%; background-color: #e74c3c;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="result-box">
+                        <h4 style="color: #34495e; margin-bottom: 10px;">运营能力维度</h4>
+                        <div class="result-item">
+                            <span class="result-label">综合得分</span>
+                            <span class="result-value">${operationalScore.toFixed(1)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${operationalScore}%; background-color: #2ecc71;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-box" style="background-color: #ecf0f1;">
+                    <h4 style="color: #2c3e50; margin-bottom: 15px;">各子模块得分明细</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                        <div class="result-item">
+                            <span class="result-label">基金经理能力</span>
+                            <span class="result-value">${scores[0].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">策略有效性</span>
+                            <span class="result-value">${scores[1].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">风险管理</span>
+                            <span class="result-value">${scores[2].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">收益能力</span>
+                            <span class="result-value">${scores[3].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">运营管理</span>
+                            <span class="result-value">${scores[4].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">市场适应性</span>
+                            <span class="result-value">${scores[5].toFixed(1)}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">持续稳定性</span>
+                            <span class="result-value">${scores[6].toFixed(1)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding: 20px; background-color: #d5dbdb; border-radius: 8px;">
+                    <p style="margin: 0; font-weight: 600; color: #2c3e50;">
+                        数据导出格式（可用于进一步的机器学习模型）：
+                    </p>
+                    <pre style="margin-top: 10px; padding: 10px; background-color: white; border-radius: 4px; overflow-x: auto;">
+{
+    "fund_code": "${document.getElementById('fundCode').value || 'N/A'}",
+    "fund_name": "${document.getElementById('fundName').value || 'N/A'}",
+    "evaluation_date": "${new Date().toISOString().split('T')[0]}",
+    "sub_scores": {
+        "manager_capability": ${scores[0].toFixed(2)},
+        "strategy_effectiveness": ${scores[1].toFixed(2)},
+        "risk_management": ${scores[2].toFixed(2)},
+        "return_capability": ${scores[3].toFixed(2)},
+        "operation_management": ${scores[4].toFixed(2)},
+        "market_adaptability": ${scores[5].toFixed(2)},
+        "stability_persistence": ${scores[6].toFixed(2)}
+    },
+    "dimension_scores": {
+        "investment_ability": ${investmentScore.toFixed(2)},
+        "risk_control": ${riskControlScore.toFixed(2)},
+        "operational_excellence": ${operationalScore.toFixed(2)}
+    }
+}</pre>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
